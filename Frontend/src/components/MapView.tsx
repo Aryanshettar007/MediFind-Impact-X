@@ -1,20 +1,25 @@
 import { GoogleMap, Marker, InfoWindow, DirectionsRenderer, useJsApiLoader } from "@react-google-maps/api";
 import { useState, useRef, useEffect } from "react";
+import { MapViewProps, Pharmacy } from "../types";
 
 const containerStyle = { width: "100%", height: "500px" };
 
-export default function MapView({ userLocation, pharmacies }) {
+const libraries: ("places" | "drawing" | "geometry" | "visualization")[] = ["places"];
+
+export default function MapView({ userLocation, pharmacies }: MapViewProps) {
   const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-    libraries: ["places"],
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string,
+    libraries,
   });
 
   const [center, setCenter] = useState(userLocation);
-  const [selected, setSelected] = useState(null);
-  const [directions, setDirections] = useState(null);
-  const mapRef = useRef();
+  const [selected, setSelected] = useState<Pharmacy | null>(null);
+  const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
 
-  const onLoad = (map) => (mapRef.current = map);
+  const onLoad = (map: google.maps.Map) => {
+    mapRef.current = map;
+  };
 
   useEffect(() => {
     if (userLocation) {
@@ -23,7 +28,9 @@ export default function MapView({ userLocation, pharmacies }) {
     }
   }, [userLocation]);
 
-  const getDirections = (pharmacy) => {
+  const getDirections = (pharmacy: Pharmacy) => {
+    if (!userLocation || !pharmacy.lat || !pharmacy.lng) return;
+
     const directionsService = new window.google.maps.DirectionsService();
     directionsService.route(
       {
@@ -32,7 +39,7 @@ export default function MapView({ userLocation, pharmacies }) {
         travelMode: window.google.maps.TravelMode.DRIVING,
       },
       (result, status) => {
-        if (status === "OK") setDirections(result);
+        if (status === "OK" && result) setDirections(result);
         else console.error("Directions request failed:", status);
       }
     );
@@ -57,23 +64,25 @@ export default function MapView({ userLocation, pharmacies }) {
 
       {/* Pharmacy Markers */}
       {pharmacies.map((p, i) => (
-        <Marker
-          key={i}
-          position={{ lat: p.lat, lng: p.lng }}
-          onClick={() => setSelected(p)}
-          icon={{
-            url:
-              p.ai_score && p.ai_score >= 0.5
-                ? "http://maps.google.com/mapfiles/ms/icons/green-dot.png"
-                : "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
-          }}
-        />
+        p.lat && p.lng ? (
+          <Marker
+            key={i}
+            position={{ lat: p.lat, lng: p.lng }}
+            onClick={() => setSelected(p)}
+            icon={{
+              url:
+                p.ai_score && p.ai_score >= 0.5
+                  ? "http://maps.google.com/mapfiles/ms/icons/green-dot.png"
+                  : "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
+            }}
+          />
+        ) : null
       ))}
 
       {/* Info Window */}
       {selected && (
         <InfoWindow
-          position={{ lat: selected.lat, lng: selected.lng }}
+          position={{ lat: selected.lat!, lng: selected.lng! }}
           onCloseClick={() => setSelected(null)}
         >
           <div>

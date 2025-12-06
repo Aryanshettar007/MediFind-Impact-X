@@ -7,6 +7,7 @@ import { Button } from "./ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { toast } from "sonner@2.0.3";
 import axios from "axios";
+import API_URL from "../config";
 
 interface PharmacyLoginProps {
   onLogin: () => void;
@@ -27,77 +28,77 @@ export function PharmacyLogin({ onLogin }: PharmacyLoginProps) {
 
   // 🟢 Handle Login
   // 🟢 Handle Login
-const handleLogin = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!loginForm.email || !loginForm.password) {
-    toast.error("Please fill in all fields");
-    return;
-  }
-
-  try {
-    setLoading(true);
-    const res = await axios.post("http://localhost:3000/api/pharmacy/login", {
-      email: loginForm.email,
-      password: loginForm.password,
-    });
-
-    if (res.status === 200) {
-      toast.success("Login successful!");
-      localStorage.setItem("pharmacy_id", res.data.pharmacy_id);
-      setTimeout(onLogin, 500); // 👈 Redirect to dashboard
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loginForm.email || !loginForm.password) {
+      toast.error("Please fill in all fields");
+      return;
     }
-  } catch (error: any) {
-    console.error("Login error:", error);
-    toast.error(error.response?.data?.message || "Invalid credentials");
-  } finally {
-    setLoading(false);
-  }
-};
 
-// 🟢 Handle Registration
-const handleRegister = async (e: React.FormEvent) => {
-  e.preventDefault();
-  const { name, email, password, phone, address, latitude, longitude } = registerForm;
+    try {
+      setLoading(true);
+      const res = await axios.post(`${API_URL}/api/pharmacy/login`, {
+        email: loginForm.email,
+        password: loginForm.password,
+      });
 
-  if (!name || !email || !password || !phone || !address || !latitude || !longitude) {
-    toast.error("Please fill in all fields, including coordinates");
-    return;
-  }
-
-  try {
-    setLoading(true);
-    const coordinates = [parseFloat(longitude), parseFloat(latitude)];
-
-    const res = await axios.post("http://localhost:3000/api/pharmacy/register", {
-      pharmacy_id: "P" + Date.now(),
-      name,
-      owner_name: name,
-      email,
-      password,
-      phone_number: phone,
-      address: {
-        street: address,
-        city: "Bangalore",
-        state: "Karnataka",
-        pincode: "560001",
-      },
-      coordinates,
-    });
-
-    if (res.status === 201) {
-      toast.success("Registration successful! Redirecting to dashboard...");
-
-      // 👇 Save pharmacy_id and redirect directly
-      localStorage.setItem("pharmacy_id", res.data.pharmacy.pharmacy_id);
-      setTimeout(onLogin, 1000); // redirect to dashboard
+      if (res.status === 200) {
+        toast.success("Login successful!");
+        localStorage.setItem("pharmacy_id", res.data.pharmacy_id);
+        setTimeout(onLogin, 500); // 👈 Redirect to dashboard
+      }
+    } catch (error: any) {
+      console.error("Login error:", error);
+      toast.error(error.response?.data?.message || "Invalid credentials");
+    } finally {
+      setLoading(false);
     }
-  } catch (error: any) {
-    console.error("Registration error:", error);
-    toast.error(error.response?.data?.message || "Registration failed");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
+
+  // 🟢 Handle Registration
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const { name, email, password, phone, address, latitude, longitude } = registerForm;
+
+    if (!name || !email || !password || !phone || !address || !latitude || !longitude) {
+      toast.error("Please fill in all fields, including coordinates");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const coordinates = [parseFloat(longitude), parseFloat(latitude)];
+
+      const res = await axios.post(`${API_URL}/api/pharmacy/register`, {
+        pharmacy_id: "P" + Date.now(),
+        name,
+        owner_name: name,
+        email,
+        password,
+        phone_number: phone,
+        address: {
+          street: address,
+          city: "Bangalore",
+          state: "Karnataka",
+          pincode: "560001",
+        },
+        coordinates,
+      });
+
+      if (res.status === 201) {
+        toast.success("Registration successful! Redirecting to dashboard...");
+
+        // 👇 Save pharmacy_id and redirect directly
+        localStorage.setItem("pharmacy_id", res.data.pharmacy.pharmacy_id);
+        setTimeout(onLogin, 1000); // redirect to dashboard
+      }
+    } catch (error: any) {
+      console.error("Registration error:", error);
+      toast.error(error.response?.data?.message || "Registration failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
   return (

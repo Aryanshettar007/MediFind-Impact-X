@@ -1,5 +1,7 @@
 import { useState } from "react";
 import MapView from "./MapView";
+import API_URL from "../config";
+import { Pharmacy, UserLocation } from "../types";
 import {
   Search,
   TrendingUp,
@@ -27,8 +29,8 @@ export function UserInterface() {
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [showResults, setShowResults] = useState(false);
-  const [pharmacies, setPharmacies] = useState([]);
-  const [userLocation, setUserLocation] = useState(null);
+  const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isLoadingAlternates, setIsLoadingAlternates] = useState(false);
   const [alternates, setAlternates] = useState([]);
@@ -60,7 +62,7 @@ export function UserInterface() {
 
           console.log("📍 User location:", latitude, longitude);
 
-          const res = await fetch("http://localhost:3000/api/search_medicine", {
+          const res = await fetch(`${API_URL}/api/search_medicine`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -74,8 +76,10 @@ export function UserInterface() {
           console.log("✅ Search Results:", data);
 
           if (data && Array.isArray(data.pharmacies) && data.pharmacies.length > 0) {
-            const formatted = data.pharmacies.map((p) => ({
+            const formatted: Pharmacy[] = data.pharmacies.map((p: any) => ({
               ...p,
+              lat: p.coordinates ? p.coordinates[1] : undefined,
+              lng: p.coordinates ? p.coordinates[0] : undefined,
               inStock: p.stock > 0,
               address: `${p.city}, ${p.state}`,
             }));
@@ -115,7 +119,7 @@ export function UserInterface() {
     setIsLoadingAlternates(true);
 
     try {
-      const res = await fetch("http://localhost:3000/api/ai/suggest", {
+      const res = await fetch(`${API_URL}/api/ai/suggest`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ medicine_name: query }),
@@ -161,7 +165,7 @@ export function UserInterface() {
       setIsUploading(true);
 
       try {
-        const res = await fetch("http://localhost:3000/api/ocr/upload", {
+        const res = await fetch(`${API_URL}/api/ocr/upload`, {
           method: "POST",
           body: formData,
         });
@@ -199,9 +203,9 @@ export function UserInterface() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-slate-50 dark:bg-gray-900 transition-colors duration-300">
       {/* Navbar */}
-      <nav className="bg-white/80 backdrop-blur-md border-b border-emerald-100 sticky top-0 z-40 shadow-sm">
+      <nav className="bg-white/80 dark:bg-gray-900/90 backdrop-blur-md border-b border-emerald-100 dark:border-gray-800 sticky top-0 z-40 shadow-sm transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-6 flex justify-between items-center h-16">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg">
@@ -217,7 +221,7 @@ export function UserInterface() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Search Section */}
-        <Card className="mb-8 border-emerald-200 shadow-lg bg-white/80">
+        <Card className="mb-8 border-emerald-200 dark:border-gray-800 shadow-lg bg-white/80 dark:bg-gray-800/50 backdrop-blur-sm">
           <CardContent className="pt-6">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1 relative">
@@ -227,7 +231,7 @@ export function UserInterface() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  className="pl-10 h-12 border-emerald-200 focus:border-emerald-500"
+                  className="pl-10 h-12 border-emerald-200 dark:border-gray-700 focus:border-emerald-500 dark:bg-gray-900 dark:text-gray-100"
                 />
               </div>
 
@@ -262,7 +266,7 @@ export function UserInterface() {
             {/* 🧮 Available Pharmacies Section */}
             <div className="mt-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-emerald-700 flex items-center gap-2">
+                <h3 className="text-emerald-700 dark:text-emerald-400 flex items-center gap-2 text-lg font-semibold">
                   <TrendingUp className="h-5 w-5" /> Available Pharmacies
                 </h3>
 
@@ -272,7 +276,7 @@ export function UserInterface() {
                   <select
                     value={sortOption}
                     onChange={(e) => sortPharmacies(e.target.value)}
-                    className="border border-emerald-300 rounded-md p-2 text-sm focus:ring-emerald-500 bg-white"
+                    className="border border-emerald-300 dark:border-gray-700 rounded-md p-2 text-sm focus:ring-emerald-500 bg-white dark:bg-gray-800 dark:text-gray-200"
                   >
                     <option value="ai_score">AI Score (Default)</option>
                     <option value="price">Price</option>
@@ -287,13 +291,13 @@ export function UserInterface() {
                 {pharmacies.map((pharmacy, i) => (
                   <Card
                     key={i}
-                    className="border border-emerald-200 shadow-sm hover:shadow-md transition-all duration-200"
+                    className="border border-emerald-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-all duration-200 dark:bg-gray-800"
                   >
                     <CardContent className="p-4 flex justify-between items-center">
                       <div>
-                        <h4 className="font-semibold text-lg">{pharmacy.name}</h4>
-                        <p className="text-sm text-gray-600">{pharmacy.address}</p>
-                        <p className="text-sm text-gray-500">{pharmacy.distance_km.toFixed(2)} km away</p>
+                        <h4 className="font-semibold text-lg dark:text-gray-100">{pharmacy.name}</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">{pharmacy.address}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-500">{pharmacy.distance_km.toFixed(2)} km away</p>
                       </div>
 
                       <div className="text-right flex flex-col items-end gap-2">
@@ -327,13 +331,13 @@ export function UserInterface() {
             </div>
 
             {/* 🧠 Substitute Suggestions */}
-            <Card className="mt-10 border-emerald-200 shadow-lg">
+            <Card className="mt-10 border-emerald-200 dark:border-gray-800 shadow-lg dark:bg-gray-800/80">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-emerald-700">
+                <CardTitle className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
                   <Pill className="h-5 w-5" />
                   Substitute Suggestions
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="dark:text-gray-400">
                   AI-generated alternatives with similar composition
                 </CardDescription>
               </CardHeader>
@@ -347,13 +351,13 @@ export function UserInterface() {
                     {alternates.map((alt, i) => (
                       <Card
                         key={i}
-                        className="border-emerald-200 bg-gradient-to-br from-white to-emerald-50 hover:shadow-lg transition-all"
+                        className="border-emerald-200 dark:border-gray-700 bg-gradient-to-br from-white to-emerald-50 dark:from-gray-800 dark:to-gray-900 hover:shadow-lg transition-all"
                       >
                         <CardContent className="p-4 flex flex-col items-start justify-between h-full">
-                          <Badge className="mb-3 bg-teal-100 text-teal-700 border-0">
+                          <Badge className="mb-3 bg-teal-100 text-teal-700 border-0 dark:bg-teal-900/30 dark:text-teal-300">
                             Substitute
                           </Badge>
-                          <h4 className="text-gray-900 font-semibold mb-2">{alt}</h4>
+                          <h4 className="text-gray-900 dark:text-gray-100 font-semibold mb-2">{alt}</h4>
                           <Button
                             size="sm"
                             variant="outline"
@@ -382,9 +386,9 @@ export function UserInterface() {
         {!showResults && hasSearched && !isSearching && <NoResults />}
       </div>
 
-      <footer className="bg-white/80 border-t border-emerald-100 mt-16 py-6 text-center text-gray-600">
+      <footer className="bg-white/80 dark:bg-gray-900/90 border-t border-emerald-100 dark:border-gray-800 mt-16 py-6 text-center text-gray-600 dark:text-gray-400 transition-colors duration-300">
         Powered by{" "}
-        <span className="text-emerald-600 font-semibold">Impact-X</span> ⚡
+        <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Impact-X</span> ⚡
       </footer>
     </div>
   );

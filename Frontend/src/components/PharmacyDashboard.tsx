@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import API_URL from "../config";
 import {
   LayoutDashboard,
   Package,
@@ -30,7 +31,7 @@ import {
   TableRow,
 } from "./ui/table";
 import { Badge } from "./ui/badge";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 
 interface PharmacyDashboardProps {
   onLogout: () => void;
@@ -68,7 +69,7 @@ export function PharmacyDashboard({ onLogout }: PharmacyDashboardProps) {
   const fetchMedicines = async () => {
     try {
       const res = await axios.get(
-        `http://localhost:3000/api/medicine/${pharmacyId}`
+        `${API_URL}/api/medicine/${pharmacyId}`
       );
       const data = res.data.map((m: any, idx: number) => ({
         _id: m._id,
@@ -80,8 +81,8 @@ export function PharmacyDashboard({ onLogout }: PharmacyDashboardProps) {
           m.stock === 0
             ? "Out of Stock"
             : m.stock < 20
-            ? "Low Stock"
-            : "In Stock",
+              ? "Low Stock"
+              : "In Stock",
       }));
       setMedicines(data);
     } catch {
@@ -102,7 +103,7 @@ export function PharmacyDashboard({ onLogout }: PharmacyDashboardProps) {
     }
 
     try {
-      const res = await axios.post("http://localhost:3000/api/medicine/add", {
+      const res = await axios.post(`${API_URL}/api/medicine/add`, {
         pharmacy_id: pharmacyId,
         medicine_name: newMedicine.name,
         brand_name: "",
@@ -134,7 +135,7 @@ export function PharmacyDashboard({ onLogout }: PharmacyDashboardProps) {
 
     try {
       const res = await axios.post(
-        "http://localhost:3000/api/medicine/upload_csv",
+        `${API_URL}/api/medicine/upload_csv`,
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
@@ -163,7 +164,7 @@ export function PharmacyDashboard({ onLogout }: PharmacyDashboardProps) {
   const handleSaveEdit = async (m: Medicine) => {
     try {
       const res = await axios.put(
-        `http://localhost:3000/api/medicine/${pharmacyId}/${m.name}`,
+        `${API_URL}/api/medicine/${pharmacyId}/${m.name}`,
         {
           price: parseFloat(editForm.price),
           stock: parseInt(editForm.quantity),
@@ -182,7 +183,7 @@ export function PharmacyDashboard({ onLogout }: PharmacyDashboardProps) {
   const handleDelete = async (medicine: Medicine) => {
     try {
       await axios.delete(
-        `http://localhost:3000/api/medicine/${pharmacyId}/${medicine.name}`
+        `${API_URL}/api/medicine/${pharmacyId}/${medicine.name}`
       );
       toast.success("Medicine deleted successfully!");
       fetchMedicines(); // ✅ refresh after delete
@@ -222,11 +223,10 @@ export function PharmacyDashboard({ onLogout }: PharmacyDashboardProps) {
             <Button
               key={tab}
               variant={activeTab === tab ? "default" : "ghost"}
-              className={`w-full justify-start ${
-                activeTab === tab
-                  ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white"
-                  : ""
-              }`}
+              className={`w-full justify-start ${activeTab === tab
+                ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white"
+                : ""
+                }`}
               onClick={() =>
                 setActiveTab(tab as "dashboard" | "add-stock" | "inventory")
               }
@@ -456,8 +456,8 @@ export function PharmacyDashboard({ onLogout }: PharmacyDashboardProps) {
                               medicine.status === "In Stock"
                                 ? "bg-emerald-100 text-emerald-700"
                                 : medicine.status === "Low Stock"
-                                ? "bg-amber-100 text-amber-700"
-                                : "bg-red-100 text-red-700"
+                                  ? "bg-amber-100 text-amber-700"
+                                  : "bg-red-100 text-red-700"
                             }
                           >
                             {medicine.status}
