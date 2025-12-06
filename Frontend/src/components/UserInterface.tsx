@@ -167,12 +167,12 @@ export function UserInterface() {
         });
 
         const data = await res.json();
-        const probable = data.probable_medicines?.[0];
-        if (probable) {
-          setSearchQuery(probable);
-          alert(`🧠 Detected medicine: ${probable}`);
+        const extractedText = data.text;
+        if (extractedText && extractedText.trim()) {
+          setSearchQuery(extractedText.trim().split("\n")[0]); // Use the first line as the query
+          alert(`🧠 Detected text. Searching for: ${extractedText.trim().split("\n")[0]}`);
         } else {
-          alert("No recognizable medicine found in prescription.");
+          alert("No recognizable text found in the prescription.");
         }
       } catch (err) {
         console.error("❌ OCR upload failed:", err);
@@ -293,7 +293,7 @@ export function UserInterface() {
                       <div>
                         <h4 className="font-semibold text-lg">{pharmacy.name}</h4>
                         <p className="text-sm text-gray-600">{pharmacy.address}</p>
-                        <p className="text-sm text-gray-500">{pharmacy.distance_km} km away</p>
+                        <p className="text-sm text-gray-500">{pharmacy.distance_km.toFixed(2)} km away</p>
                       </div>
 
                       <div className="text-right flex flex-col items-end gap-2">

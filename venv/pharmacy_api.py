@@ -1,8 +1,10 @@
-# pharmacy_api.py
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+import os
 import logging
 import sys
+import pickle
+import numpy as np
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 
 # Configure logging to show in console
 logging.basicConfig(
@@ -15,59 +17,92 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-# Allow all origins for testing
 CORS(app, resources={r"/*": {"origins": "*"}})
+
+# Global variable to store the ML model
+ml_model = None
+
+def load_ml_model(model_path="pharmacy_ml_model.pkl"):
+    """
+    Load the trained ML model from pickle file
+    """
+    global ml_model
+    try:
+        with open(model_path, 'rb') as f:
+            ml_model = pickle.load(f)
+        logger.info("✅ ML Model loaded successfully")
+        logger.info(f"Model type: {type(ml_model['model']).__name__}")
+        logger.info(f"Feature names: {ml_model['feature_names']}")
+        return True
+    except Exception as e:
+        logger.error(f"❌ Failed to load ML model: {e}")
+        return False
+
+def predict_ml_scores(pharmacies, ml_model):
+    """
+    Use the trained ML model to predict scores
+    """
+    try:
+        # Extract features
+        features = []
+        pharmacy_data = []
+        
+        for pharmacy in pharmacies:
+            features.append([
+                pharmacy['distance_km'],
+                pharmacy['price'], 
+                pharmacy['stock']
+            ])
+            pharmacy_data.append(pharmacy)
+        
+        # Convert to numpy array
+        X = np.array(features)
+        
+        # Scale features using the trained scaler
+        X_scaled = (X - ml_model['feature_means']) / ml_model['feature_stds']
+        
+        # Predict scores using ML model
+        scores = ml_model['model'].predict(X_scaled)
+        
+        # Combine results
+        results = []
+        for i, pharmacy in enumerate(pharmacy_data):
+            results.append({
+                "pharmacy_id": pharmacy['pharmacy_id'],
+                "ai_score": round(float(scores[i]), 4)
+            })
+        
+        return results
+        
+    except Exception as e:
+        logger.error(f"Error in ML prediction: {e}")
+        return []
 
 @app.route('/health', methods=['GET'])
 def health_check():
     logger.info("Health check endpoint called")
+    status = "healthy" if ml_model is not None else "model not loaded"
     return jsonify({
-        "status": "healthy",
-        "message": "ML API is running"
+        "status": status,
+        "message": "ML API is running",
+        "model_loaded": ml_model is not None,
+        "model_type": "LinearRegression" if ml_model else "None"
     })
 
 @app.route('/predict', methods=['POST'])
 def predict_scores():
     """
-    Predict AI scores for pharmacies
-    Expected JSON input (array of pharmacies):
-    [
-      {
-        "pharmacy_id": "P001",
-        "name": "Apollo Pharmacy", 
-        "distance_km": 1.23,
-        "price": 30,
-        "stock": 70,
-        "expiry_date": "2026-02-20T00:00:00.000Z",
-        "city": "Bangalore",
-        "state": "Karnataka"
-      },
-      {
-        "pharmacy_id": "P002",
-        "name": "Medico Plus",
-        "distance_km": 2.5,
-        "price": 25,
-        "stock": 50,
-        "expiry_date": "2025-12-15T00:00:00.000Z",
-        "city": "Bangalore",
-        "state": "Karnataka"
-      }
-    ]
-    
-    Returns:
-    [
-      {
-        "pharmacy_id": "P001",
-        "ai_score": 0.832
-      },
-      {
-        "pharmacy_id": "P002", 
-        "ai_score": 0.765
-      }
-    ]
+    Predict AI scores for pharmacies using the trained ML model
     """
     try:
-        # Get JSON data from request - expecting array of pharmacies
+        # Check if model is loaded
+        if ml_model is None:
+            return jsonify({
+                "error": "ML Model not loaded. Please check if pharmacy_ml_model.pkl exists",
+                "status": "error"
+            }), 500
+        
+        # Get JSON data from request
         pharmacies = request.get_json()
         
         # Log the incoming request
@@ -80,49 +115,33 @@ def predict_scores():
                 "status": "error"
             }), 400
         
-        results = []
+        # Validate each pharmacy has required fields
+        valid_pharmacies = []
         for pharmacy in pharmacies:
             try:
-                # Validate required fields
-                required_fields = ['pharmacy_id', 'distance_km', 'price', 'stock', 'expiry_date']
-                for field in required_fields:
-                    if field not in pharmacy:
-                        logger.warning(f"Missing field {field} in pharmacy {pharmacy.get('pharmacy_id', 'Unknown')}")
-                        continue
-                
-                # Validate data types
-                try:
+                required_fields = ['pharmacy_id', 'distance_km', 'price', 'stock']
+                if all(field in pharmacy for field in required_fields):
+                    # Validate data types
                     distance_km = float(pharmacy['distance_km'])
                     price = float(pharmacy['price'])
                     stock = int(pharmacy['stock'])
-                except (ValueError, TypeError):
-                    logger.warning(f"Invalid data types for pharmacy {pharmacy['pharmacy_id']}")
-                    continue
-                
-                # Calculate AI score
-                # Mock AI score calculation
-                distance = float(pharmacy.get('distance_km', 0))
-                price = float(pharmacy.get('price', 0))
-                stock = float(pharmacy.get('stock', 0))
-                
-                # Simple scoring formula
-                score = (1 / (1 + distance)) * 0.4 + \
-                       (1 - (price/200)) * 0.3 + \
-                       (stock/100) * 0.3
-                
-                # Prepare response with only pharmacy_id and ai_score
-                results.append({
-                    "pharmacy_id": pharmacy['pharmacy_id'],
-                    "ai_score": round(score, 3)
-                })
-                
-                logger.info(f"Calculated score {score} for pharmacy {pharmacy['pharmacy_id']}")
-                
-            except Exception as e:
-                logger.error(f"Error processing pharmacy {pharmacy.get('pharmacy_id', 'Unknown')}: {str(e)}")
+                    valid_pharmacies.append(pharmacy)
+                else:
+                    logger.warning(f"Missing required fields in pharmacy {pharmacy.get('pharmacy_id', 'Unknown')}")
+            except (ValueError, TypeError) as e:
+                logger.warning(f"Invalid data types for pharmacy {pharmacy.get('pharmacy_id', 'Unknown')}: {e}")
                 continue
         
-        logger.info(f"Successfully processed {len(results)} pharmacies")
+        if not valid_pharmacies:
+            return jsonify({
+                "error": "No valid pharmacies found in request",
+                "status": "error"
+            }), 400
+        
+        # Predict scores using ML model
+        results = predict_ml_scores(valid_pharmacies, ml_model)
+        
+        logger.info(f"Successfully processed {len(results)} pharmacies using ML model")
         
         return jsonify(results)
     
@@ -133,6 +152,25 @@ def predict_scores():
             "message": str(e),
             "status": "error"
         }), 500
+
+@app.route('/model_info', methods=['GET'])
+def model_info():
+    """
+    Get information about the loaded ML model
+    """
+    if ml_model is None:
+        return jsonify({
+            "error": "ML Model not loaded",
+            "status": "error"
+        }), 500
+    
+    return jsonify({
+        "model_type": type(ml_model['model']).__name__,
+        "feature_names": ml_model['feature_names'],
+        "coefficients": ml_model['model'].coef_.tolist(),
+        "intercept": float(ml_model['model'].intercept_),
+        "status": "loaded"
+    })
 
 @app.errorhandler(404)
 def not_found(error):
@@ -150,9 +188,18 @@ def method_not_allowed(error):
 
 if __name__ == '__main__':
     try:
-        logger.info("🚀 Starting ML API on http://127.0.0.1:5001")
-        # Change host to '0.0.0.0' to allow external connections
-        app.run(host="0.0.0.0", port=5001, debug=True)
+        # Load the ML model when starting the server
+        model_loaded = load_ml_model()
+        
+        if not model_loaded:
+            logger.error("❌ Failed to load ML model. Please run train_model.py first")
+            sys.exit(1)
+        
+        port = int(os.environ.get("PORT", 5001))
+        logger.info(f"🚀 Starting ML API on http://0.0.0.0:{port}")
+        logger.info(f"🤖 Using model: {type(ml_model['model']).__name__}")
+        app.run(host="0.0.0.0", port=port, debug=False)
+        
     except Exception as e:
         logger.error(f"Failed to start server: {e}")
         sys.exit(1)

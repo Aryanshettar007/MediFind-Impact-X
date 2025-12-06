@@ -1,7 +1,11 @@
 import Pharmacy from "../models/pharma.model.js";
 import Medicine from "../models/medicine.model.js";
 
-export const findPharmaciesNearby = async (medicine_name, latitude, longitude) => {
+export const findPharmaciesNearby = async (
+  medicine_name,
+  latitude,
+  longitude
+) => {
   try {
     // 1️⃣ Find all medicines that match the search term and are valid
     const medicines = await Medicine.find({
@@ -45,7 +49,7 @@ export const findPharmaciesNearby = async (medicine_name, latitude, longitude) =
       return {
         pharmacy_id: pharma.pharmacy_id,
         name: pharma.name,
-        distance_km: (pharma.distance_km / 1000).toFixed(2),
+        distance_km: pharma.distance_km / 1000,
         price: med?.price || 0,
         stock: med?.stock || 0,
         expiry_date: med?.expiry_date,
@@ -54,7 +58,7 @@ export const findPharmaciesNearby = async (medicine_name, latitude, longitude) =
         coordinates: pharma.coordinates || [], // ✅ Ensure coordinates are passed to frontend
       };
     });
-console.log("✅ Nearby pharmacy results:", results);
+    console.log("✅ Nearby pharmacy results:", results);
 
     return results;
   } catch (err) {

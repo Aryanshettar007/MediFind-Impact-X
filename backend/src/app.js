@@ -16,8 +16,11 @@ const app = express();
 // ✅ Enable CORS
 app.use(
   cors({
-    origin: "http://localhost:5173", // Your frontend
-    credentials: true, // Allow cookies and headers
+    origin: [
+      "https://medifind-iul6.onrender.com", // ✅ your deployed frontend
+      "http://localhost:5173",               // ✅ for local development
+    ],
+    credentials: true, // ✅ allow cookies, headers, tokens, etc.
   })
 );
 

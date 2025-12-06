@@ -35,8 +35,6 @@ export const getMLScores = async (pharmacies) => {
         "❌ ML service is not running. Please start the Python server first."
       );
       console.error("ℹ️  Run the following commands:");
-      console.error("cd D:\\medi_sjbit");
-      console.error(".\\venv\\Scripts\\activate");
       console.error("python venv\\pharmacy_api.py");
     }
 

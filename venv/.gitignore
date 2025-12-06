@@ -1,65 +1,41 @@
-# =========================================
-# Python & Flask Project .gitignore
-# =========================================
-
-# --- Python cache and compiled files ---
-__pycache__/
-*.py[cod]
-*$py.class
-
-# --- Virtual environments ---
+# 🧠 Ignore virtual environment folders
 venv/
+ENV/
 env/
 .venv/
-ENV/
-env.bak/
 
-# --- Jupyter Notebook checkpoints ---
-.ipynb_checkpoints/
+# 🧹 Ignore Python cache and build files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
-# --- Flask / backend logs and temp files ---
-instance/
+
+# 🧠 Ignore environment config files
+*.cfg
+*.ini
 *.log
-*.pid
-*.sqlite3
 
-# --- Model files (optional, uncomment if you store trained models) ---
-# *.h5
-# *.pkl
-# *.joblib
-# *.pt
+# 🧪 Ignore dataset or generated files (if any)
+data/
+datasets/
+*.csv
+*.json
 
-# --- Build & distribution folders ---
-build/
-dist/
-*.egg-info/
+# 🧱 Ignore IDE-specific files
+.vscode/
+.idea/
+*.code-workspace
 
-# --- OS-specific files ---
+# 🧰 Ignore system files
 .DS_Store
 Thumbs.db
 
-# --- VS Code / IDE settings ---
-.vscode/
-.idea/
-*.sublime-project
-*.sublime-workspace
+# 🧪 Ignore temporary Jupyter files (if you use notebooks)
+.ipynb_checkpoints/
 
-# --- Environment & dependency files ---
-.env
-.env.local
-.env.*.local
-
-# --- Temporary datasets or output folders ---
-__output__/
-data/
-datasets/
-tmp/
+# 🧩 Ignore any temporary folders you might add later
 temp/
+tmp/
 Lib/
 Scripts/
-
-# --- Other custom ignores (optional) ---
-# Add your own paths below if you have large local-only files
-# e.g., 
-# pharmacy_records/
-
