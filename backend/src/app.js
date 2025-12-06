@@ -17,7 +17,8 @@ const app = express();
 app.use(
   cors({
     origin: [
-      "https://medifind-iul6.onrender.com", // ✅ your deployed frontend
+      "https://medi-find-impact-x.vercel.app", // ✅ your Vercel frontend
+      process.env.FRONTEND_URL,              // ✅ allows dynamic configuration
       "http://localhost:5173",               // ✅ for local development
     ],
     credentials: true, // ✅ allow cookies, headers, tokens, etc.
