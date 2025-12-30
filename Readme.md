@@ -1,6 +1,6 @@
 # 🧠 AI-Powered Smart Medicine Locator and Price Optimizer  
-### Team: Impact-X | Team ID: 2  
-### AXIOM-2025 SJBIT 24hour Hackathon 
+### Team: Impact-X 
+
 Live-link : https://medi-find-impact-x.vercel.app/
 ---
 
