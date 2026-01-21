@@ -19,8 +19,8 @@ export const findPharmaciesNearby = async (
     // 2️⃣ Extract pharmacy IDs
     const pharmacyIds = medicines.map((m) => m.pharmacy_id);
 
-    // 3️⃣ Find nearby pharmacies that have those IDs
-    const pharmacies = await Pharmacy.aggregate([
+    // 3️⃣ Find nearby pharmacies (First try: 20km radius)
+    let pharmacies = await Pharmacy.aggregate([
       {
         $geoNear: {
           near: { type: "Point", coordinates: [longitude, latitude] },
@@ -36,12 +36,40 @@ export const findPharmaciesNearby = async (
           pharmacy_id: 1,
           name: 1,
           distance_km: 1,
-          coordinates: "$location.coordinates", // ✅ Include pharmacy coordinates
+          coordinates: "$location.coordinates",
           "address.city": 1,
           "address.state": 1,
         },
       },
     ]);
+
+    // 🔄 Fallback: If no pharmacies found in 20km, search globally (nearest first)
+    if (!pharmacies.length) {
+      console.log("⚠️ No pharmacies within 20km, switching to global search...");
+      pharmacies = await Pharmacy.aggregate([
+        {
+          $geoNear: {
+            near: { type: "Point", coordinates: [longitude, latitude] },
+            distanceField: "distance_km",
+            spherical: true,
+            query: { pharmacy_id: { $in: pharmacyIds } },
+            // No maxDistance -> returns everything sorted by distance
+          },
+        },
+        { $limit: 50 }, // Limit to 50 results to avoid overloading
+        {
+          $project: {
+            _id: 0,
+            pharmacy_id: 1,
+            name: 1,
+            distance_km: 1,
+            coordinates: "$location.coordinates",
+            "address.city": 1,
+            "address.state": 1,
+          },
+        },
+      ]);
+    }
 
     // 4️⃣ Merge pharmacy + medicine data
     const results = pharmacies.map((pharma) => {

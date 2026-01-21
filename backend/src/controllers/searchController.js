@@ -12,7 +12,10 @@ export const searchMedicine = async (req, res) => {
       longitude
     );
     if (!pharmacies.length) {
-      return res.status(404).json({ message: "No pharmacies found nearby" });
+      return res.status(200).json({ 
+        message: "No pharmacies found nearby", 
+        pharmacies: [] 
+      });
     }
 
     // Step 2️⃣: Get AI scores from ML service
